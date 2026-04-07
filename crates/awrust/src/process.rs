@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::time::Duration;
 
@@ -29,6 +30,10 @@ impl ProcessManager {
         }
 
         Self { processes }
+    }
+
+    pub fn targets(&self) -> HashMap<ServiceKind, SocketAddr> {
+        self.processes.iter().map(|p| (p.kind, p.addr)).collect()
     }
 
     pub async fn wait_healthy(&self, timeout: Duration) {
