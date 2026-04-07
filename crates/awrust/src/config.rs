@@ -19,6 +19,13 @@ impl ServiceKind {
         }
     }
 
+    pub fn from_sigv4_name(name: &str) -> Option<Self> {
+        match name {
+            "s3" => Some(Self::S3),
+            _ => None,
+        }
+    }
+
     fn from_str(s: &str) -> Option<Self> {
         match s {
             "s3" => Some(Self::S3),
