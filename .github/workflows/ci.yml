@@ -33,3 +33,58 @@ jobs:
 
       - name: Release build
         run: cargo build --release
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r tests/integration/requirements.txt
+
+      - name: Pull S3 service binary
+        run: |
+          docker create --name s3-extract ghcr.io/awrust/awrust-s3:latest
+          docker cp s3-extract:/usr/local/bin/awrust-s3-server /usr/local/bin/awrust-s3-server
+          docker rm s3-extract
+          chmod +x /usr/local/bin/awrust-s3-server
+
+      - name: Build facade
+        run: cargo build -p awrust
+
+      - name: Run BDD tests
+        working-directory: tests/integration
+        run: behave
+
+  docker:
+    name: Docker Integration
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r tests/integration/requirements.txt
+
+      - name: Build image
+        run: docker build -f docker/Dockerfile -t awrust:ci .
+
+      - name: Run BDD tests against Docker image
+        working-directory: tests/integration
+        env:
+          IMAGE: awrust:ci
+        run: behave
