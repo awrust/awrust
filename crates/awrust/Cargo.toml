@@ -1,0 +1,13 @@
+[package]
+name = "awrust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bytes = "1"
+http-body-util = "0.1"
+hyper = { version = "1", features = ["http1", "http2", "server", "client"] }
+hyper-util = { version = "0.1", features = ["tokio", "http1", "http2", "client-legacy", "server-auto"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "signal", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
