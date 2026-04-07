@@ -7,6 +7,18 @@ pub enum ServiceKind {
 }
 
 impl ServiceKind {
+    pub fn binary_name(self) -> &'static str {
+        match self {
+            Self::S3 => "awrust-s3-server",
+        }
+    }
+
+    pub fn listen_env_var(self) -> &'static str {
+        match self {
+            Self::S3 => "AWRUST_S3_LISTEN_ADDR",
+        }
+    }
+
     fn from_str(s: &str) -> Option<Self> {
         match s {
             "s3" => Some(Self::S3),
@@ -57,6 +69,16 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn service_kind_binary_name() {
+        assert_eq!(ServiceKind::S3.binary_name(), "awrust-s3-server");
+    }
+
+    #[test]
+    fn service_kind_listen_env_var() {
+        assert_eq!(ServiceKind::S3.listen_env_var(), "AWRUST_S3_LISTEN_ADDR");
+    }
 
     #[test]
     fn service_kind_from_str() {

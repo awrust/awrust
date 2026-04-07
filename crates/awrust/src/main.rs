@@ -1,7 +1,11 @@
 mod config;
+mod process;
 mod tracing_init;
 
+use std::time::Duration;
+
 use config::Config;
+use process::ProcessManager;
 
 #[tokio::main]
 async fn main() {
@@ -14,4 +18,13 @@ async fn main() {
         services = ?services,
         "awrust starting"
     );
+
+    let manager = ProcessManager::start(&config.services).await;
+    manager.wait_healthy(Duration::from_secs(15)).await;
+
+    tracing::info!("all services healthy, awaiting shutdown signal");
+    tokio::signal::ctrl_c().await.expect("listen for ctrl-c");
+
+    tracing::info!("shutting down");
+    manager.shutdown().await;
 }
