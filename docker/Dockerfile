@@ -1,0 +1,30 @@
+FROM ghcr.io/awrust/awrust-s3:latest AS s3-bin
+
+FROM rust:1.93-alpine AS builder
+
+RUN apk add --no-cache musl-dev
+
+WORKDIR /build
+COPY . .
+
+RUN cargo build --release -p awrust
+
+FROM alpine:3
+
+RUN addgroup -S awrust && adduser -S awrust -G awrust
+RUN mkdir -p /data && chown awrust:awrust /data
+
+COPY --from=builder /build/target/release/awrust /usr/local/bin/awrust
+COPY --from=s3-bin /usr/local/bin/awrust-s3-server /usr/local/bin/awrust-s3-server
+
+USER awrust
+
+ENV AWRUST_LISTEN_ADDR=0.0.0.0:4566
+ENV AWRUST_SERVICES=s3
+ENV AWRUST_LOG=info
+ENV AWRUST_S3_STORE=memory
+ENV AWRUST_S3_DATA_DIR=/data
+
+EXPOSE 4566
+
+ENTRYPOINT ["awrust"]
