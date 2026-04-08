@@ -14,7 +14,7 @@ fn dual_stack(domain: Domain, sock_type: Type, proto: Protocol, addr: SocketAddr
     socket
 }
 
-pub async fn bind(addr: SocketAddr) -> TcpListener {
+pub fn bind(addr: SocketAddr) -> TcpListener {
     let domain = if addr.is_ipv6() {
         Domain::IPV6
     } else {
@@ -25,7 +25,7 @@ pub async fn bind(addr: SocketAddr) -> TcpListener {
     TcpListener::from_std(socket.into()).expect("tokio TcpListener")
 }
 
-pub async fn bind_udp(addr: SocketAddr) -> UdpSocket {
+pub fn bind_udp(addr: SocketAddr) -> UdpSocket {
     let domain = if addr.is_ipv6() {
         Domain::IPV6
     } else {
@@ -50,7 +50,7 @@ mod tests {
 
     #[tokio::test]
     async fn dual_stack_accepts_ipv4() {
-        let listener = bind("[::]:0".parse().unwrap()).await;
+        let listener = bind("[::]:0".parse().unwrap());
         let port = listener.local_addr().unwrap().port();
         let addr: SocketAddr = format!("127.0.0.1:{port}").parse().unwrap();
         assert!(
@@ -61,7 +61,7 @@ mod tests {
 
     #[tokio::test]
     async fn dual_stack_accepts_ipv6() {
-        let listener = bind("[::]:0".parse().unwrap()).await;
+        let listener = bind("[::]:0".parse().unwrap());
         let port = listener.local_addr().unwrap().port();
         let addr: SocketAddr = format!("[::1]:{port}").parse().unwrap();
         assert!(
@@ -72,7 +72,7 @@ mod tests {
 
     #[tokio::test]
     async fn v4_only_binds() {
-        let listener = bind("127.0.0.1:0".parse().unwrap()).await;
+        let listener = bind("127.0.0.1:0".parse().unwrap());
         let addr = listener.local_addr().unwrap();
         assert!(TcpStream::connect(addr).await.is_ok());
     }
