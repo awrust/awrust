@@ -4,12 +4,8 @@ Lightweight AWS service emulators behind a single port. One Docker image, one `d
 
 ## Quick start
 
-```yaml
-services:
-  awrust:
-    image: ghcr.io/awrust/awrust:latest
-    ports:
-      - "4566:4566"
+```bash
+docker compose up
 ```
 
 ```python
