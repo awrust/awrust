@@ -20,10 +20,6 @@ COPY --from=s3-bin /usr/local/bin/awrust-s3-server /usr/local/bin/awrust-s3-serv
 USER awrust
 
 ENV AWRUST_LISTEN_ADDR=0.0.0.0:4566
-ENV AWRUST_SERVICES=s3
-ENV AWRUST_LOG=info
-ENV AWRUST_S3_STORE=memory
-ENV AWRUST_S3_DATA_DIR=/data
 
 EXPOSE 4566
 
