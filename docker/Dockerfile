@@ -19,8 +19,6 @@ COPY --from=s3-bin /usr/local/bin/awrust-s3-server /usr/local/bin/awrust-s3-serv
 
 USER awrust
 
-ENV AWRUST_LISTEN_ADDR=0.0.0.0:4566
-
 EXPOSE 4566 53/udp
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \

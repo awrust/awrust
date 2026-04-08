@@ -31,7 +31,7 @@ s3.put_object(Bucket="my-bucket", Key="hello.txt", Body=b"hello")
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `AWRUST_LISTEN_ADDR` | `0.0.0.0:4566` | Facade listen address |
+| `AWRUST_LISTEN_ADDR` | `[::]:4566` | Facade listen address (dual-stack IPv4+IPv6) |
 | `AWRUST_SERVICES` | `s3` | Comma-separated list of services to enable |
 | `AWRUST_BASE_DOMAIN` | `localhost` | Base domain for virtual-host routing (cascades to all services) |
 | `AWRUST_LOG` | `info` | Log level filter (tracing syntax) |
@@ -50,7 +50,7 @@ DNS variables (opt-in, resolves `*.{AWRUST_BASE_DOMAIN}` for all services):
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `AWRUST_DNS` | `false` | Enable built-in DNS responder (`true` or `1`) |
-| `AWRUST_DNS_ADDR` | `0.0.0.0:53` | DNS listen address |
+| `AWRUST_DNS_ADDR` | `[::]:53` | DNS listen address (dual-stack IPv4+IPv6) |
 | `AWRUST_DNS_RESOLVE_IP` | auto-detect | IP returned for matching queries |
 | `AWRUST_DNS_UPSTREAM` | from `/etc/resolv.conf` | Upstream DNS for non-matching queries |
 
