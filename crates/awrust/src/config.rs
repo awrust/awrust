@@ -57,7 +57,7 @@ pub struct Config {
 impl Config {
     pub fn from_env() -> Self {
         let listen_addr = std::env::var("AWRUST_LISTEN_ADDR")
-            .unwrap_or_else(|_| "0.0.0.0:4566".to_string())
+            .unwrap_or_else(|_| "[::]:4566".to_string())
             .parse()
             .expect("valid AWRUST_LISTEN_ADDR");
 
@@ -96,7 +96,7 @@ fn parse_dns_config(base_domain: &str) -> Option<dns::DnsConfig> {
     }
 
     let listen_addr = std::env::var("AWRUST_DNS_ADDR")
-        .unwrap_or_else(|_| "0.0.0.0:53".to_string())
+        .unwrap_or_else(|_| "[::]:53".to_string())
         .parse()
         .expect("valid AWRUST_DNS_ADDR");
 

@@ -1,6 +1,7 @@
 mod config;
 mod dns;
 mod health;
+mod net;
 mod process;
 mod proxy;
 mod router;
@@ -15,7 +16,6 @@ use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use hyper_util::server::conn::auto::Builder;
-use tokio::net::TcpListener;
 
 use config::Config;
 use process::ProcessManager;
@@ -52,9 +52,7 @@ async fn main() {
         tokio::spawn(dns::serve(dns_config));
     }
 
-    let listener = TcpListener::bind(config.listen_addr)
-        .await
-        .expect("bind listen address");
+    let listener = net::bind(config.listen_addr).await;
     tracing::info!(listen = %config.listen_addr, "accepting connections");
 
     let shutdown = tokio::signal::ctrl_c();

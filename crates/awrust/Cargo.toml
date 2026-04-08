@@ -8,6 +8,7 @@ bytes = "1"
 http-body-util = "0.1"
 hyper = { version = "1", features = ["http1", "http2", "server", "client"] }
 hyper-util = { version = "0.1", features = ["tokio", "http1", "http2", "client-legacy", "server-auto"] }
+socket2 = { version = "0.5", features = ["all"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "process", "signal", "time"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }

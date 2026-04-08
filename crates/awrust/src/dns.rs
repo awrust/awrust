@@ -24,9 +24,7 @@ pub struct DnsConfig {
 }
 
 pub async fn serve(config: DnsConfig) {
-    let socket = UdpSocket::bind(config.listen_addr)
-        .await
-        .expect("bind DNS socket");
+    let socket = crate::net::bind_udp(config.listen_addr).await;
     tracing::info!(
         addr = %config.listen_addr,
         base_domain = %config.base_domain,
@@ -181,7 +179,9 @@ fn build_refused(query: &[u8]) -> Vec<u8> {
 }
 
 async fn forward_upstream(query: &[u8], upstream: SocketAddr) -> Option<Vec<u8>> {
-    let socket = UdpSocket::bind("0.0.0.0:0").await.ok()?;
+    let socket = UdpSocket::bind(crate::net::ephemeral_udp_addr(&upstream))
+        .await
+        .ok()?;
     socket.send_to(query, upstream).await.ok()?;
     let mut buf = [0u8; MAX_PACKET];
     let len = tokio::time::timeout(Duration::from_secs(3), socket.recv(&mut buf))
