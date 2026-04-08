@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::net::SocketAddr;
 
+use hyper::body::Bytes;
 use hyper::{Request, Response, StatusCode};
 use tokio::net::TcpStream;
 
@@ -17,7 +18,7 @@ pub fn is_facade_health_check<B>(req: &Request<B>) -> bool {
 
 pub async fn check(
     targets: &HashMap<ServiceKind, SocketAddr>,
-) -> Response<http_body_util::Full<bytes::Bytes>> {
+) -> Response<http_body_util::Full<Bytes>> {
     let mut all_healthy = true;
     let mut entries = Vec::new();
 
@@ -45,6 +46,6 @@ pub async fn check(
     Response::builder()
         .status(http_status)
         .header("content-type", "application/json")
-        .body(http_body_util::Full::new(bytes::Bytes::from(body)))
+        .body(http_body_util::Full::new(Bytes::from(body)))
         .expect("valid response")
 }

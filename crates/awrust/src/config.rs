@@ -23,12 +23,8 @@ impl ServiceKind {
         format!("AWRUST_{}_BASE_DOMAIN", self.as_str().to_ascii_uppercase())
     }
 
-    pub fn from_sigv4_name(name: &str) -> Option<Self> {
+    pub fn from_name(name: &str) -> Option<Self> {
         Self::ALL.iter().find(|(n, _)| *n == name).map(|(_, k)| *k)
-    }
-
-    fn from_str(s: &str) -> Option<Self> {
-        Self::ALL.iter().find(|(n, _)| *n == s).map(|(_, k)| *k)
     }
 
     fn as_str(self) -> &'static str {
@@ -65,7 +61,7 @@ impl Config {
             .unwrap_or_else(|_| "s3".to_string())
             .split(',')
             .map(|s| {
-                ServiceKind::from_str(s.trim()).unwrap_or_else(|| panic!("unknown service: {s}"))
+                ServiceKind::from_name(s.trim()).unwrap_or_else(|| panic!("unknown service: {s}"))
             })
             .collect();
 
@@ -141,9 +137,9 @@ mod tests {
     }
 
     #[test]
-    fn service_kind_from_str() {
-        assert_eq!(ServiceKind::from_str("s3"), Some(ServiceKind::S3));
-        assert_eq!(ServiceKind::from_str("invalid"), None);
+    fn service_kind_from_name() {
+        assert_eq!(ServiceKind::from_name("s3"), Some(ServiceKind::S3));
+        assert_eq!(ServiceKind::from_name("invalid"), None);
     }
 
     #[test]
@@ -154,6 +150,6 @@ mod tests {
     #[test]
     #[should_panic(expected = "unknown service")]
     fn unknown_service_panics() {
-        ServiceKind::from_str("invalid").unwrap_or_else(|| panic!("unknown service: invalid"));
+        ServiceKind::from_name("invalid").unwrap_or_else(|| panic!("unknown service: invalid"));
     }
 }

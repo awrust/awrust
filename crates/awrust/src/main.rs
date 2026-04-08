@@ -11,7 +11,7 @@ use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
 
-use hyper::body::Incoming;
+use hyper::body::{Bytes, Incoming};
 use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::{TokioExecutor, TokioIo};
@@ -21,11 +21,10 @@ use config::Config;
 use process::ProcessManager;
 use proxy::Proxy;
 
-type BoxBody = http_body_util::Either<Incoming, http_body_util::Full<bytes::Bytes>>;
+type BoxBody = http_body_util::Either<Incoming, http_body_util::Full<Bytes>>;
 
 struct AppState {
     proxy: Proxy,
-    targets: std::collections::HashMap<config::ServiceKind, std::net::SocketAddr>,
 }
 
 #[tokio::main]
@@ -45,14 +44,13 @@ async fn main() {
 
     let state = Arc::new(AppState {
         proxy: Proxy::new(manager.targets()),
-        targets: manager.targets(),
     });
 
     if let Some(dns_config) = config.dns {
         tokio::spawn(dns::serve(dns_config));
     }
 
-    let listener = net::bind(config.listen_addr).await;
+    let listener = net::bind(config.listen_addr);
     tracing::info!(listen = %config.listen_addr, "accepting connections");
 
     let shutdown = tokio::signal::ctrl_c();
@@ -90,7 +88,7 @@ async fn main() {
 
 async fn handle(req: Request<Incoming>, state: &AppState) -> Response<BoxBody> {
     if health::is_facade_health_check(&req) {
-        return health::check(&state.targets)
+        return health::check(state.proxy.targets())
             .await
             .map(http_body_util::Either::Right);
     }

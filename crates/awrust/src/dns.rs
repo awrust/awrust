@@ -6,7 +6,6 @@ use tokio::net::UdpSocket;
 const MAX_PACKET: usize = 512;
 const HEADER_LEN: usize = 12;
 const TYPE_A: u16 = 1;
-const TYPE_AAAA: u16 = 28;
 const CLASS_IN: u16 = 1;
 const TTL: u32 = 60;
 
@@ -24,7 +23,7 @@ pub struct DnsConfig {
 }
 
 pub async fn serve(config: DnsConfig) {
-    let socket = crate::net::bind_udp(config.listen_addr).await;
+    let socket = crate::net::bind_udp(config.listen_addr);
     tracing::info!(
         addr = %config.listen_addr,
         base_domain = %config.base_domain,
@@ -78,15 +77,15 @@ async fn handle_query(query: &[u8], config: &DnsConfig) -> Option<Vec<u8>> {
     }
 
     let qname_lower = qname.to_ascii_lowercase();
+    let question_end = qname_end + 4;
 
     if !matches_base_domain(&qname_lower, &config.base_domain) {
         return forward_upstream(query, config.upstream).await;
     }
 
     match qtype {
-        TYPE_A => Some(build_a_response(query, qname_end, config.resolve_ip)),
-        TYPE_AAAA => Some(build_empty_response(query, qname_end)),
-        _ => Some(build_empty_response(query, qname_end)),
+        TYPE_A => Some(build_a_response(query, question_end, config.resolve_ip)),
+        _ => Some(build_empty_response(query, question_end)),
     }
 }
 
@@ -124,7 +123,7 @@ fn matches_base_domain(qname: &str, base_domain: &str) -> bool {
     qname.ends_with(&format!(".{base}"))
 }
 
-fn build_a_response(query: &[u8], question_end: usize, ip: Ipv4Addr) -> Vec<u8> {
+fn response_header(query: &[u8], question_end: usize, ancount: u16) -> Vec<u8> {
     let question_section = &query[HEADER_LEN..question_end];
     let mut resp = Vec::with_capacity(HEADER_LEN + question_section.len() + 16);
 
@@ -133,11 +132,17 @@ fn build_a_response(query: &[u8], question_end: usize, ip: Ipv4Addr) -> Vec<u8> 
     let flags = FLAG_QR | FLAG_AA | FLAG_RD | FLAG_RA;
     resp.extend_from_slice(&flags.to_be_bytes());
     resp.extend_from_slice(&1u16.to_be_bytes());
-    resp.extend_from_slice(&1u16.to_be_bytes());
+    resp.extend_from_slice(&ancount.to_be_bytes());
     resp.extend_from_slice(&0u16.to_be_bytes());
     resp.extend_from_slice(&0u16.to_be_bytes());
 
     resp.extend_from_slice(question_section);
+
+    resp
+}
+
+fn build_a_response(query: &[u8], question_end: usize, ip: Ipv4Addr) -> Vec<u8> {
+    let mut resp = response_header(query, question_end, 1);
 
     resp.extend_from_slice(&[0xC0, 0x0C]);
     resp.extend_from_slice(&TYPE_A.to_be_bytes());
@@ -150,21 +155,7 @@ fn build_a_response(query: &[u8], question_end: usize, ip: Ipv4Addr) -> Vec<u8> 
 }
 
 fn build_empty_response(query: &[u8], question_end: usize) -> Vec<u8> {
-    let question_section = &query[HEADER_LEN..question_end];
-    let mut resp = Vec::with_capacity(HEADER_LEN + question_section.len());
-
-    resp.extend_from_slice(&query[0..2]);
-
-    let flags = FLAG_QR | FLAG_AA | FLAG_RD | FLAG_RA;
-    resp.extend_from_slice(&flags.to_be_bytes());
-    resp.extend_from_slice(&1u16.to_be_bytes());
-    resp.extend_from_slice(&0u16.to_be_bytes());
-    resp.extend_from_slice(&0u16.to_be_bytes());
-    resp.extend_from_slice(&0u16.to_be_bytes());
-
-    resp.extend_from_slice(question_section);
-
-    resp
+    response_header(query, question_end, 0)
 }
 
 fn build_refused(query: &[u8]) -> Vec<u8> {
@@ -313,7 +304,7 @@ mod tests {
 
     #[test]
     fn empty_response_has_no_answers() {
-        let query = build_query(0x1234, "mybucket.awrust", TYPE_AAAA);
+        let query = build_query(0x1234, "mybucket.awrust", 28);
         let (_, qend) = parse_qname(&query, HEADER_LEN).unwrap();
         let qend = qend + 4;
         let resp = build_empty_response(&query, qend);
@@ -363,7 +354,7 @@ mod tests {
             upstream: "127.0.0.1:0".parse().unwrap(),
         };
 
-        let query = build_query(0x0002, "mybucket.awrust", TYPE_AAAA);
+        let query = build_query(0x0002, "mybucket.awrust", 28);
         let resp = handle_query(&query, &config).await.unwrap();
 
         let ancount = u16::from_be_bytes([resp[6], resp[7]]);
