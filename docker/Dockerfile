@@ -21,7 +21,7 @@ USER awrust
 
 ENV AWRUST_LISTEN_ADDR=0.0.0.0:4566
 
-EXPOSE 4566
+EXPOSE 4566 53/udp
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:4566/health || exit 1

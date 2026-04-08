@@ -10,15 +10,21 @@ Client → :4566 → awrust (facade)
                    ├── awrust-s3-server  (127.0.0.1:<ephemeral>)
                    ├── awrust-sqs-server (127.0.0.1:<ephemeral>)
                    └── ...
+
+       → :53/udp → DNS responder (opt-in)
+                   │ *.base_domain → container IP
+                   └── other       → upstream DNS
 ```
 
-The facade has three responsibilities:
+The facade has four responsibilities:
 
 1. **Process management** — spawn service binaries as child processes on random ephemeral ports, health-check them, and shut them down cleanly on SIGTERM.
 
 2. **Service routing** — inspect incoming HTTP requests to determine which service should handle them, without reading the request body.
 
 3. **Reverse proxy** — forward the request to the target service and stream the response back, without buffering.
+
+4. **DNS responder** (opt-in) — resolve `*.{base_domain}` to the container IP so virtual-hosted S3 URLs work without external DNS configuration. Non-matching queries are forwarded upstream.
 
 ## Routing algorithm
 

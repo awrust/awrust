@@ -1,5 +1,7 @@
 use std::fmt;
-use std::net::SocketAddr;
+use std::net::{Ipv4Addr, SocketAddr};
+
+use crate::dns;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ServiceKind {
@@ -7,38 +9,40 @@ pub enum ServiceKind {
 }
 
 impl ServiceKind {
-    pub fn binary_name(self) -> &'static str {
-        match self {
-            Self::S3 => "awrust-s3-server",
-        }
+    const ALL: &[(&'static str, Self)] = &[("s3", Self::S3)];
+
+    pub fn binary_name(self) -> String {
+        format!("awrust-{self}-server")
     }
 
-    pub fn listen_env_var(self) -> &'static str {
-        match self {
-            Self::S3 => "AWRUST_S3_LISTEN_ADDR",
-        }
+    pub fn listen_env_var(self) -> String {
+        format!("AWRUST_{}_LISTEN_ADDR", self.as_str().to_ascii_uppercase())
+    }
+
+    pub fn base_domain_env_var(self) -> String {
+        format!("AWRUST_{}_BASE_DOMAIN", self.as_str().to_ascii_uppercase())
     }
 
     pub fn from_sigv4_name(name: &str) -> Option<Self> {
-        match name {
-            "s3" => Some(Self::S3),
-            _ => None,
-        }
+        Self::ALL.iter().find(|(n, _)| *n == name).map(|(_, k)| *k)
     }
 
     fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "s3" => Some(Self::S3),
-            _ => None,
-        }
+        Self::ALL.iter().find(|(n, _)| *n == s).map(|(_, k)| *k)
+    }
+
+    fn as_str(self) -> &'static str {
+        Self::ALL
+            .iter()
+            .find(|(_, k)| *k == self)
+            .map(|(n, _)| *n)
+            .expect("variant in ALL")
     }
 }
 
 impl fmt::Display for ServiceKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::S3 => write!(f, "s3"),
-        }
+        f.write_str(self.as_str())
     }
 }
 
@@ -46,6 +50,8 @@ pub struct Config {
     pub listen_addr: SocketAddr,
     pub services: Vec<ServiceKind>,
     pub log_filter: String,
+    pub base_domain: String,
+    pub dns: Option<dns::DnsConfig>,
 }
 
 impl Config {
@@ -65,12 +71,51 @@ impl Config {
 
         let log_filter = std::env::var("AWRUST_LOG").unwrap_or_else(|_| "info".to_string());
 
+        let base_domain =
+            std::env::var("AWRUST_BASE_DOMAIN").unwrap_or_else(|_| "localhost".to_string());
+
+        let dns = parse_dns_config(&base_domain);
+
         Self {
             listen_addr,
             services,
             log_filter,
+            base_domain,
+            dns,
         }
     }
+}
+
+fn parse_dns_config(base_domain: &str) -> Option<dns::DnsConfig> {
+    let enabled = std::env::var("AWRUST_DNS")
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(false);
+
+    if !enabled {
+        return None;
+    }
+
+    let listen_addr = std::env::var("AWRUST_DNS_ADDR")
+        .unwrap_or_else(|_| "0.0.0.0:53".to_string())
+        .parse()
+        .expect("valid AWRUST_DNS_ADDR");
+
+    let resolve_ip = std::env::var("AWRUST_DNS_RESOLVE_IP")
+        .ok()
+        .map(|v| v.parse::<Ipv4Addr>().expect("valid AWRUST_DNS_RESOLVE_IP"))
+        .unwrap_or_else(dns::detect_resolve_ip);
+
+    let upstream = std::env::var("AWRUST_DNS_UPSTREAM")
+        .ok()
+        .map(|v| v.parse::<SocketAddr>().expect("valid AWRUST_DNS_UPSTREAM"))
+        .unwrap_or_else(dns::detect_upstream);
+
+    Some(dns::DnsConfig {
+        listen_addr,
+        resolve_ip,
+        base_domain: base_domain.to_string(),
+        upstream,
+    })
 }
 
 #[cfg(test)]
@@ -85,6 +130,14 @@ mod tests {
     #[test]
     fn service_kind_listen_env_var() {
         assert_eq!(ServiceKind::S3.listen_env_var(), "AWRUST_S3_LISTEN_ADDR");
+    }
+
+    #[test]
+    fn service_kind_base_domain_env_var() {
+        assert_eq!(
+            ServiceKind::S3.base_domain_env_var(),
+            "AWRUST_S3_BASE_DOMAIN"
+        );
     }
 
     #[test]

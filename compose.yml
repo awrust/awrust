@@ -3,3 +3,7 @@ services:
     image: ghcr.io/awrust/awrust:0.1.0
     ports:
       - "4566:4566"
+    environment:
+      - AWRUST_SERVICES=s3
+      - AWRUST_BASE_DOMAIN=awrust
+      - AWRUST_DNS=true
