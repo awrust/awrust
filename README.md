@@ -1,44 +1,35 @@
-# awrust
+<p align="center">
+  <img src="logo.svg" alt="AWRust" width="200">
+</p>
 
-Lightweight AWS service emulators behind a single port. One Docker image, one `docker-compose` service, all your local AWS needs.
+<h1 align="center">AWRust</h1>
+
+<p align="center">
+  Run AWS services locally with a single Docker container.
+</p>
+
+## What is AWRust?
+
+AWRust lets you develop and test against AWS services without an AWS account or internet connection. Point your application at `localhost:4566` and use the same AWS SDKs and CLI tools you already know — no code changes required.
+
+All services run behind a single port, managed by a lightweight facade that automatically routes requests to the right service emulator.
 
 ## Quick start
 
-```yaml
-services:
-  awrust:
-    image: ghcr.io/awrust/awrust:latest
-    ports:
-      - "4566:4566"
+```bash
+docker compose up
 ```
 
-```python
-import boto3
-
-s3 = boto3.client("s3", endpoint_url="http://localhost:4566",
-    aws_access_key_id="test", aws_secret_access_key="test", region_name="us-east-1")
-
-s3.create_bucket(Bucket="my-bucket")
-s3.put_object(Bucket="my-bucket", Key="hello.txt", Body=b"hello")
-```
+Your local AWS endpoint is now available at `http://localhost:4566`.
 
 ## Services
 
 | Service | Status |
 |---------|--------|
-| S3 | Available |
-| SQS | Planned |
+| S3      | Available |
+| SQS     | Planned |
 
-## How it works
+## Documentation
 
-awrust is a facade that spawns service emulators as child processes and routes incoming requests by inspecting AWS SigV4 headers. All services share a single port.
-
-See [Architecture](docs/ARCHITECTURE.md) and [Usage](docs/USAGE.md) for details.
-
-## Philosophy
-
-- Small, focused services
-- Docker-first distribution
-- Fast, deterministic local development
-- Not production workloads, not perfect AWS compatibility
-- MIT licensed
+- [Architecture](docs/ARCHITECTURE.md)
+- [Usage](docs/USAGE.md)
