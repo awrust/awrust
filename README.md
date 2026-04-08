@@ -33,7 +33,3 @@ Your local AWS endpoint is now available at `http://localhost:4566`.
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Usage](docs/USAGE.md)
-
-## License
-
-MIT
