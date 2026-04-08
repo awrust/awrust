@@ -19,12 +19,12 @@ pub struct ProcessManager {
 }
 
 impl ProcessManager {
-    pub async fn start(services: &[ServiceKind]) -> Self {
+    pub async fn start(services: &[ServiceKind], base_domain: &str) -> Self {
         let mut processes = Vec::with_capacity(services.len());
 
         for &kind in services {
             let addr = allocate_port().await;
-            let child = spawn(kind, addr);
+            let child = spawn(kind, addr, base_domain);
             tracing::info!(service = %kind, addr = %addr, "spawned");
             processes.push(ManagedProcess { kind, addr, child });
         }
@@ -59,10 +59,15 @@ async fn allocate_port() -> SocketAddr {
     listener.local_addr().expect("local addr")
 }
 
-fn spawn(kind: ServiceKind, addr: SocketAddr) -> Child {
-    Command::new(kind.binary_name())
-        .env(kind.listen_env_var(), addr.to_string())
-        .kill_on_drop(true)
+fn spawn(kind: ServiceKind, addr: SocketAddr, base_domain: &str) -> Child {
+    let mut cmd = Command::new(kind.binary_name());
+    cmd.env(kind.listen_env_var(), addr.to_string());
+
+    if std::env::var(kind.base_domain_env_var()).is_err() {
+        cmd.env(kind.base_domain_env_var(), base_domain);
+    }
+
+    cmd.kill_on_drop(true)
         .spawn()
         .unwrap_or_else(|e| panic!("{} not found on PATH: {e}", kind.binary_name()))
 }

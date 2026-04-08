@@ -1,4 +1,5 @@
 mod config;
+mod dns;
 mod health;
 mod process;
 mod proxy;
@@ -39,13 +40,17 @@ async fn main() {
         "awrust starting"
     );
 
-    let manager = ProcessManager::start(&config.services).await;
+    let manager = ProcessManager::start(&config.services, &config.base_domain).await;
     manager.wait_healthy(Duration::from_secs(15)).await;
 
     let state = Arc::new(AppState {
         proxy: Proxy::new(manager.targets()),
         targets: manager.targets(),
     });
+
+    if let Some(dns_config) = config.dns {
+        tokio::spawn(dns::serve(dns_config));
+    }
 
     let listener = TcpListener::bind(config.listen_addr)
         .await
