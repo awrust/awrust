@@ -1,5 +1,6 @@
 use std::fmt;
 use std::net::{Ipv4Addr, SocketAddr};
+use std::path::PathBuf;
 
 use crate::dns;
 
@@ -52,6 +53,7 @@ pub struct Config {
     pub log_filter: String,
     pub base_domain: String,
     pub dns: Option<dns::DnsConfig>,
+    pub init_dir: PathBuf,
 }
 
 impl Config {
@@ -76,12 +78,17 @@ impl Config {
 
         let dns = parse_dns_config(&base_domain);
 
+        let init_dir = std::env::var("AWRUST_INIT_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("/etc/awrust/init/ready.d"));
+
         Self {
             listen_addr,
             services,
             log_filter,
             base_domain,
             dns,
+            init_dir,
         }
     }
 }

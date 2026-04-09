@@ -1,6 +1,8 @@
 import os
+import shutil
 import socket
 import subprocess
+import tempfile
 import time
 import urllib.request
 
@@ -24,7 +26,23 @@ def _wait_for_health(url, timeout=30):
     raise RuntimeError(f"facade did not become ready at {url}")
 
 
-def _start_cargo(context, port):
+def _create_init_dir():
+    init_dir = tempfile.mkdtemp(prefix="awrust-init-")
+    os.chmod(init_dir, 0o755)
+
+    with open(os.path.join(init_dir, "01_create_bucket.sh"), "w") as f:
+        f.write('#!/bin/sh\n')
+        f.write('curl -sf -X PUT "${AWRUST_ENDPOINT}/init-provisioned"\n')
+
+    with open(os.path.join(init_dir, "02_put_object.sh"), "w") as f:
+        f.write('#!/bin/sh\n')
+        f.write('printf "%s" "hello from init" | curl -sf -X PUT -T - '
+                '"${AWRUST_ENDPOINT}/init-provisioned/greeting.txt"\n')
+
+    return init_dir
+
+
+def _start_cargo(context, port, init_dir):
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
     subprocess.run(
@@ -39,6 +57,7 @@ def _start_cargo(context, port):
     env["AWRUST_SERVICES"] = "s3"
     env["AWRUST_LOG"] = "warn"
     env["AWRUST_S3_STORE"] = "memory"
+    env["AWRUST_INIT_DIR"] = init_dir
 
     context.server = subprocess.Popen(
         ["cargo", "run", "-p", "awrust"],
@@ -49,13 +68,14 @@ def _start_cargo(context, port):
     )
 
 
-def _start_docker(context, port, image):
+def _start_docker(context, port, image, init_dir):
     cmd = [
         "docker", "run", "--rm", "-d",
         "-p", f"{port}:4566",
         "--name", f"awrust-bdd-{port}",
         "-e", "AWRUST_SERVICES=s3",
         "-e", "AWRUST_LOG=warn",
+        "-v", f"{init_dir}:/etc/awrust/init/ready.d",
         image,
     ]
 
@@ -73,12 +93,14 @@ def before_all(context):
         context.port = port
         context.base_url = f"http://127.0.0.1:{port}"
 
+        context._init_dir = _create_init_dir()
+
         image = os.environ.get("IMAGE")
 
         if image:
-            _start_docker(context, port, image)
+            _start_docker(context, port, image, context._init_dir)
         else:
-            _start_cargo(context, port)
+            _start_cargo(context, port, context._init_dir)
 
     _wait_for_health(context.base_url)
 
@@ -92,6 +114,8 @@ def before_all(context):
 
 
 def after_all(context):
+    if hasattr(context, "_init_dir"):
+        shutil.rmtree(context._init_dir, ignore_errors=True)
     if hasattr(context, "_container"):
         subprocess.run(
             ["docker", "rm", "-f", context._container],
