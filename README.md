@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.svg" alt="AWRust" width="200">
+  <img src="logo-wb.svg" alt="AWRust" width="200">
 </p>
 
 <h1 align="center">AWRust</h1>
