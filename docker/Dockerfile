@@ -11,6 +11,7 @@ RUN cargo build --release -p awrust
 
 FROM alpine:3
 
+RUN apk add --no-cache curl
 RUN addgroup -S awrust && adduser -S awrust -G awrust
 RUN mkdir -p /data /etc/awrust/init/ready.d && chown -R awrust:awrust /data /etc/awrust
 
