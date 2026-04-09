@@ -64,7 +64,10 @@ fn spawn(kind: ServiceKind, addr: SocketAddr, base_domain: &str) -> Child {
     cmd.env(kind.listen_env_var(), addr.to_string());
 
     if std::env::var(kind.base_domain_env_var()).is_err() {
-        cmd.env(kind.base_domain_env_var(), base_domain);
+        cmd.env(
+            kind.base_domain_env_var(),
+            kind.qualified_base_domain(base_domain),
+        );
     }
 
     cmd.kill_on_drop(true)
