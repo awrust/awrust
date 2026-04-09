@@ -18,6 +18,7 @@ pub fn is_facade_health_check<B>(req: &Request<B>) -> bool {
 
 pub async fn check(
     targets: &HashMap<ServiceKind, SocketAddr>,
+    init_done: bool,
 ) -> Response<http_body_util::Full<Bytes>> {
     let mut all_healthy = true;
     let mut entries = Vec::new();
@@ -31,11 +32,12 @@ pub async fn check(
         entries.push(format!(r#""{kind}":{{"status":"{status}"}}"#));
     }
 
-    let status_str = if all_healthy { "ok" } else { "degraded" };
-    let http_status = if all_healthy {
-        StatusCode::OK
+    let (status_str, http_status) = if !init_done {
+        ("initializing", StatusCode::SERVICE_UNAVAILABLE)
+    } else if all_healthy {
+        ("ok", StatusCode::OK)
     } else {
-        StatusCode::SERVICE_UNAVAILABLE
+        ("degraded", StatusCode::SERVICE_UNAVAILABLE)
     };
 
     let body = format!(

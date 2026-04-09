@@ -1,8 +1,9 @@
+use std::net::SocketAddr;
 use std::path::Path;
 
 use tokio::process::Command;
 
-pub async fn run(dir: &Path) {
+pub async fn run(dir: &Path, listen_addr: SocketAddr) {
     if !dir.is_dir() {
         tracing::debug!(path = %dir.display(), "init directory not found, skipping");
         return;
@@ -22,11 +23,17 @@ pub async fn run(dir: &Path) {
 
     scripts.sort();
 
+    let endpoint = format!("http://127.0.0.1:{}", listen_addr.port());
+
     for script in &scripts {
         let name = script.file_name().unwrap_or_default().to_string_lossy();
         tracing::info!(script = %name, "running init script");
 
-        let result = Command::new("/bin/sh").arg(script).status().await;
+        let result = Command::new("/bin/sh")
+            .arg(script)
+            .env("AWRUST_ENDPOINT", &endpoint)
+            .status()
+            .await;
 
         match result {
             Ok(status) if status.success() => {
@@ -48,9 +55,15 @@ mod tests {
     use std::fs;
     use tempfile::TempDir;
 
+    const DUMMY_ADDR: &str = "127.0.0.1:0";
+
+    fn addr() -> SocketAddr {
+        DUMMY_ADDR.parse().unwrap()
+    }
+
     #[tokio::test]
     async fn skips_nonexistent_directory() {
-        run(Path::new("/tmp/awrust-test-nonexistent")).await;
+        run(Path::new("/tmp/awrust-test-nonexistent"), addr()).await;
     }
 
     #[tokio::test]
@@ -69,7 +82,7 @@ mod tests {
             fs::write(dir.path().join(name), content).unwrap();
         }
 
-        run(dir.path()).await;
+        run(dir.path(), addr()).await;
 
         let output = fs::read_to_string(&marker).unwrap();
         assert_eq!(output, "first\nsecond\nthird\n");
@@ -88,7 +101,7 @@ mod tests {
         .unwrap();
         fs::write(sub.join("should_not_run.sh"), "exit 1").unwrap();
 
-        run(dir.path()).await;
+        run(dir.path(), addr()).await;
 
         let output = fs::read_to_string(&marker).unwrap();
         assert_eq!(output, "ran\n");
@@ -106,7 +119,7 @@ mod tests {
         )
         .unwrap();
 
-        run(dir.path()).await;
+        run(dir.path(), addr()).await;
 
         let output = fs::read_to_string(&marker).unwrap();
         assert_eq!(output, "ok\n");
@@ -115,6 +128,24 @@ mod tests {
     #[tokio::test]
     async fn empty_directory_is_noop() {
         let dir = TempDir::new().unwrap();
-        run(dir.path()).await;
+        run(dir.path(), addr()).await;
+    }
+
+    #[tokio::test]
+    async fn sets_awrust_endpoint_env_var() {
+        let dir = TempDir::new().unwrap();
+        let marker = dir.path().join("endpoint");
+
+        fs::write(
+            dir.path().join("01_check.sh"),
+            format!("printf '%s' \"$AWRUST_ENDPOINT\" > {}", marker.display()),
+        )
+        .unwrap();
+
+        let addr: SocketAddr = "127.0.0.1:9999".parse().unwrap();
+        run(dir.path(), addr).await;
+
+        let output = fs::read_to_string(&marker).unwrap();
+        assert_eq!(output, "http://127.0.0.1:9999");
     }
 }

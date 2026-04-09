@@ -10,6 +10,7 @@ mod tracing_init;
 
 use std::convert::Infallible;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use hyper::body::{Bytes, Incoming};
@@ -26,6 +27,7 @@ type BoxBody = http_body_util::Either<Incoming, http_body_util::Full<Bytes>>;
 
 struct AppState {
     proxy: Proxy,
+    init_done: Arc<AtomicBool>,
 }
 
 #[tokio::main]
@@ -43,10 +45,11 @@ async fn main() {
     let manager = ProcessManager::start(&config.services, &config.base_domain).await;
     manager.wait_healthy(Duration::from_secs(15)).await;
 
-    init::run(&config.init_dir).await;
+    let init_done = Arc::new(AtomicBool::new(false));
 
     let state = Arc::new(AppState {
         proxy: Proxy::new(manager.targets()),
+        init_done: Arc::clone(&init_done),
     });
 
     if let Some(dns_config) = config.dns {
@@ -55,6 +58,13 @@ async fn main() {
 
     let listener = net::bind(config.listen_addr);
     tracing::info!(listen = %config.listen_addr, "accepting connections");
+
+    let init_dir = config.init_dir;
+    let listen_addr = config.listen_addr;
+    tokio::spawn(async move {
+        init::run(&init_dir, listen_addr).await;
+        init_done.store(true, Ordering::Release);
+    });
 
     let shutdown = tokio::signal::ctrl_c();
     tokio::pin!(shutdown);
@@ -91,7 +101,8 @@ async fn main() {
 
 async fn handle(req: Request<Incoming>, state: &AppState) -> Response<BoxBody> {
     if health::is_facade_health_check(&req) {
-        return health::check(state.proxy.targets())
+        let ready = state.init_done.load(Ordering::Acquire);
+        return health::check(state.proxy.targets(), ready)
             .await
             .map(http_body_util::Either::Right);
     }
