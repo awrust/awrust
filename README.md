@@ -29,6 +29,10 @@ Your local AWS endpoint is now available at `http://localhost:4566`.
 | S3      | Available |
 | SQS     | Planned |
 
+## Init scripts
+
+Drop shell scripts into `/etc/awrust/init/ready.d/` (or bind-mount your own directory) to provision resources at startup — create buckets, seed data, anything you need before your app connects. See [Usage](docs/USAGE.md#init-scripts) for details.
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
