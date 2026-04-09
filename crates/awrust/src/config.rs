@@ -23,6 +23,10 @@ impl ServiceKind {
         format!("AWRUST_{}_BASE_DOMAIN", self.as_str().to_ascii_uppercase())
     }
 
+    pub fn qualified_base_domain(self, base_domain: &str) -> String {
+        format!("{self}.{base_domain}")
+    }
+
     pub fn from_name(name: &str) -> Option<Self> {
         Self::ALL.iter().find(|(n, _)| *n == name).map(|(_, k)| *k)
     }
@@ -133,6 +137,15 @@ mod tests {
         assert_eq!(
             ServiceKind::S3.base_domain_env_var(),
             "AWRUST_S3_BASE_DOMAIN"
+        );
+    }
+
+    #[test]
+    fn service_kind_qualified_base_domain() {
+        assert_eq!(ServiceKind::S3.qualified_base_domain("awrust"), "s3.awrust");
+        assert_eq!(
+            ServiceKind::S3.qualified_base_domain("amazonaws.com"),
+            "s3.amazonaws.com"
         );
     }
 

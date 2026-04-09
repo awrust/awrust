@@ -1,0 +1,42 @@
+services:
+  awrust:
+    image: ${IMAGE:-awrust:ci}
+    environment:
+      AWRUST_SERVICES: s3
+      AWRUST_BASE_DOMAIN: awrust
+      AWRUST_DNS: "true"
+      AWRUST_DNS_ADDR: "0.0.0.0:53"
+    networks:
+      vhost:
+        ipv4_address: 172.31.0.10
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4566/health"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 10s
+
+  tests:
+    image: python:3.11-slim
+    depends_on:
+      awrust:
+        condition: service_healthy
+    dns:
+      - 172.31.0.10
+    environment:
+      AWRUST_ENDPOINT: http://s3.awrust:4566
+    working_dir: /tests
+    volumes:
+      - .:/tests
+    command: >-
+      bash -c "pip install -q -r requirements.txt &&
+      behave --tags=@virtual-hosted --no-capture"
+    networks:
+      - vhost
+
+networks:
+  vhost:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.0.0/24

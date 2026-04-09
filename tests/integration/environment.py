@@ -64,16 +64,21 @@ def _start_docker(context, port, image):
 
 
 def before_all(context):
-    port = _free_port()
-    context.port = port
-    context.base_url = f"http://127.0.0.1:{port}"
+    endpoint = os.environ.get("AWRUST_ENDPOINT")
 
-    image = os.environ.get("IMAGE")
-
-    if image:
-        _start_docker(context, port, image)
+    if endpoint:
+        context.base_url = endpoint
     else:
-        _start_cargo(context, port)
+        port = _free_port()
+        context.port = port
+        context.base_url = f"http://127.0.0.1:{port}"
+
+        image = os.environ.get("IMAGE")
+
+        if image:
+            _start_docker(context, port, image)
+        else:
+            _start_cargo(context, port)
 
     _wait_for_health(context.base_url)
 
