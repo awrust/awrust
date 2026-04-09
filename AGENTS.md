@@ -17,6 +17,9 @@ cargo test --workspace
 4. Run tests — confirm they pass (GREEN)
 5. Run `cargo fmt --all && cargo clippy -- -D warnings` before committing
 
+## Pull requests
+- PR descriptions must follow `.github/pull_request_template.md`
+
 ## Code principles
 
 - No comments; code is truth
