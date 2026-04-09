@@ -45,6 +45,12 @@ Each service inherits `AWRUST_BASE_DOMAIN` unless its own `*_BASE_DOMAIN` is set
 | `AWRUST_S3_DATA_DIR` | `/data` | Filesystem storage directory |
 | `AWRUST_S3_BASE_DOMAIN` | `AWRUST_BASE_DOMAIN` | S3 virtual-host domain override |
 
+Init script variables (provision resources at startup):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AWRUST_INIT_DIR` | `/etc/awrust/init/ready.d` | Directory containing init scripts to run after services are healthy |
+
 DNS variables (opt-in, resolves `*.{AWRUST_BASE_DOMAIN}` for all services):
 
 | Variable | Default | Description |
@@ -87,6 +93,31 @@ networks:
 
 The DNS responder resolves `*.{AWRUST_BASE_DOMAIN}` to the container IP, forwarding all other queries upstream. This works for any service that uses virtual-hosted routing — set `AWRUST_BASE_DOMAIN` once and every service inherits it.
 
+## Init scripts
+
+Place shell scripts in the init directory to provision resources at startup. Scripts run in sorted order after all services are healthy. Each script receives `AWRUST_ENDPOINT` pointing at the facade.
+
+```yaml
+services:
+  awrust:
+    image: ghcr.io/awrust/awrust:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - AWRUST_SERVICES=s3
+    volumes:
+      - ./init:/etc/awrust/init/ready.d
+```
+
+```bash
+#!/bin/sh
+# init/01_create_buckets.sh
+curl -s -X PUT "$AWRUST_ENDPOINT/my-bucket"
+curl -s -X PUT "$AWRUST_ENDPOINT/logs-bucket"
+```
+
+The health endpoint returns `"initializing"` with HTTP 503 until all init scripts complete.
+
 ## Health check
 
 ```bash
@@ -96,6 +127,12 @@ curl http://localhost:4566/health
 ```json
 {"status": "ok", "services": {"s3": {"status": "ok"}}}
 ```
+
+| Status | HTTP code | Meaning |
+|--------|-----------|---------|
+| `ok` | 200 | All services healthy, init complete |
+| `initializing` | 503 | Init scripts still running |
+| `degraded` | 503 | One or more services unreachable |
 
 ## AWS CLI
 
