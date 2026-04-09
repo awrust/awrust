@@ -12,7 +12,7 @@ RUN cargo build --release -p awrust
 FROM alpine:3
 
 RUN addgroup -S awrust && adduser -S awrust -G awrust
-RUN mkdir -p /data && chown awrust:awrust /data
+RUN mkdir -p /data /etc/awrust/init/ready.d && chown -R awrust:awrust /data /etc/awrust
 
 COPY --from=builder /build/target/release/awrust /usr/local/bin/awrust
 COPY --from=s3-bin /usr/local/bin/awrust-s3-server /usr/local/bin/awrust-s3-server

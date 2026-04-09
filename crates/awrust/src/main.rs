@@ -1,6 +1,7 @@
 mod config;
 mod dns;
 mod health;
+mod init;
 mod net;
 mod process;
 mod proxy;
@@ -41,6 +42,8 @@ async fn main() {
 
     let manager = ProcessManager::start(&config.services, &config.base_domain).await;
     manager.wait_healthy(Duration::from_secs(15)).await;
+
+    init::run(&config.init_dir).await;
 
     let state = Arc::new(AppState {
         proxy: Proxy::new(manager.targets()),
