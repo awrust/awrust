@@ -28,6 +28,7 @@ def _wait_for_health(url, timeout=30):
 
 def _create_init_dir():
     init_dir = tempfile.mkdtemp(prefix="awrust-init-")
+    os.chmod(init_dir, 0o755)
 
     with open(os.path.join(init_dir, "01_create_bucket.sh"), "w") as f:
         f.write('#!/bin/sh\n')
@@ -35,7 +36,7 @@ def _create_init_dir():
 
     with open(os.path.join(init_dir, "02_put_object.sh"), "w") as f:
         f.write('#!/bin/sh\n')
-        f.write('echo -n "hello from init" | curl -sf -X PUT -T - '
+        f.write('printf "%s" "hello from init" | curl -sf -X PUT -T - '
                 '"${AWRUST_ENDPOINT}/init-provisioned/greeting.txt"\n')
 
     return init_dir
