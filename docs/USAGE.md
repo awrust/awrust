@@ -112,8 +112,8 @@ services:
 ```bash
 #!/bin/sh
 # init/01_create_buckets.sh
-curl -s -X PUT "$AWRUST_ENDPOINT/my-bucket"
-curl -s -X PUT "$AWRUST_ENDPOINT/logs-bucket"
+awr s3 mb my-bucket
+awr s3 mb logs-bucket
 ```
 
 The health endpoint returns `"initializing"` with HTTP 503 until all init scripts complete.
@@ -121,7 +121,7 @@ The health endpoint returns `"initializing"` with HTTP 503 until all init script
 ## Health check
 
 ```bash
-curl http://localhost:4566/health
+awr status
 ```
 
 ```json
@@ -134,12 +134,24 @@ curl http://localhost:4566/health
 | `initializing` | 503 | Init scripts still running |
 | `degraded` | 503 | One or more services unreachable |
 
-## AWS CLI
+## awrust CLI
+
+The `awr` CLI is included in the image and available in init scripts. See [awrust-cli](https://github.com/awrust/awrust-cli) for the full command reference.
 
 ```bash
-aws --endpoint-url http://localhost:4566 s3 mb s3://my-bucket
-aws --endpoint-url http://localhost:4566 s3 cp file.txt s3://my-bucket/
-aws --endpoint-url http://localhost:4566 s3 ls s3://my-bucket/
+awr s3 mb my-bucket
+awr s3 cp file.txt my-bucket/file.txt
+awr s3 ls my-bucket
+awr s3 cp my-bucket/file.txt downloaded.txt
+awr s3 rm my-bucket/file.txt
+awr s3 rb my-bucket
+awr status
+```
+
+From outside the container, point at the exposed endpoint:
+
+```bash
+awr --endpoint http://localhost:4566 s3 ls my-bucket
 ```
 
 ## Supported services
