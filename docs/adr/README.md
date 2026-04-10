@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADR)
 
-This directory contains the architectural decisions for awrust.
+This directory contains the architectural decisions for AWRust.
 
 ADRs document:
 - Why decisions were made
@@ -30,4 +30,4 @@ They exist to preserve context and prevent repeated debates.
 | 0004 | socket2 for dual-stack networking | Accepted |
 | 0005 | tracing for structured observability | Accepted |
 | 0006 | Hyper for the facade, Axum for services — no forced standardization | Accepted |
-| 0007 | Ship awrust CLI in the Docker image, remove curl | Accepted |
+| 0007 | Ship AWRust CLI in the Docker image, remove curl | Accepted |

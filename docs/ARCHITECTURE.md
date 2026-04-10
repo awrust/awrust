@@ -1,6 +1,6 @@
 # Architecture
 
-awrust is a process manager and reverse proxy that bundles AWS service emulators behind a single port.
+AWRust is a process manager and reverse proxy that bundles AWS service emulators behind a single port.
 
 ## Design
 

@@ -134,7 +134,7 @@ awr status
 | `initializing` | 503 | Init scripts still running |
 | `degraded` | 503 | One or more services unreachable |
 
-## awrust CLI
+## AWRust CLI
 
 The `awr` CLI is included in the image and available in init scripts. See [awrust-cli](https://github.com/awrust/awrust-cli) for the full command reference.
 
@@ -152,6 +152,14 @@ From outside the container, point at the exposed endpoint:
 
 ```bash
 awr --endpoint http://localhost:4566 s3 ls my-bucket
+```
+
+## AWS CLI
+
+```bash
+aws --endpoint-url http://localhost:4566 s3 mb s3://my-bucket
+aws --endpoint-url http://localhost:4566 s3 cp file.txt s3://my-bucket/
+aws --endpoint-url http://localhost:4566 s3 ls s3://my-bucket/
 ```
 
 ## Supported services
