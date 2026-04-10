@@ -82,7 +82,9 @@ COPY --from=s3-bin /usr/local/bin/awrust-s3-server /usr/local/bin/
 
 Adding a new service requires one `FROM` stage and one `COPY` line.
 
-The runtime stage installs `curl` (for use in init scripts), creates an unprivileged `awrust` user, and includes a `HEALTHCHECK` instruction that polls `/health`.
+The [`awr` CLI](https://github.com/awrust/awrust-cli) is built from source in a parallel build stage and included in the image. It reads `AWRUST_ENDPOINT` — the same environment variable the init system provides — so init scripts can use `awr s3 mb my-bucket` instead of raw HTTP calls.
+
+The runtime stage creates an unprivileged `awrust` user and includes a `HEALTHCHECK` instruction that polls `/health`.
 
 ## Non-goals
 

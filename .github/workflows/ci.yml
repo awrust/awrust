@@ -59,6 +59,9 @@ jobs:
           docker rm s3-extract
           chmod +x /usr/local/bin/awrust-s3-server
 
+      - name: Install awrust CLI
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/awrust/awrust-cli/releases/latest/download/awrust-cli-installer.sh | sh
+
       - name: Build facade
         run: cargo build -p awrust
 

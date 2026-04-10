@@ -32,12 +32,12 @@ def _create_init_dir():
 
     with open(os.path.join(init_dir, "01_create_bucket.sh"), "w") as f:
         f.write('#!/bin/sh\n')
-        f.write('curl -sf -X PUT "${AWRUST_ENDPOINT}/init-provisioned"\n')
+        f.write('awr s3 mb init-provisioned\n')
 
     with open(os.path.join(init_dir, "02_put_object.sh"), "w") as f:
         f.write('#!/bin/sh\n')
-        f.write('printf "%s" "hello from init" | curl -sf -X PUT -T - '
-                '"${AWRUST_ENDPOINT}/init-provisioned/greeting.txt"\n')
+        f.write('printf "%s" "hello from init" > /tmp/greeting.txt\n')
+        f.write('awr s3 cp /tmp/greeting.txt init-provisioned/greeting.txt\n')
 
     return init_dir
 
