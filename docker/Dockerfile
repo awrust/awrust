@@ -1,4 +1,4 @@
-FROM ghcr.io/awrust/awrust-s3:latest AS s3-bin
+FROM ghcr.io/awrust/awrust-s3:0.3.2 AS s3-bin
 
 FROM rust:1.93-alpine AS facade-builder
 
@@ -9,15 +9,18 @@ COPY . .
 
 RUN cargo build --release -p awrust
 
-FROM rust:1.93-alpine AS cli-builder
+FROM --platform=$BUILDPLATFORM alpine:3 AS cli-downloader
 
-ARG AWRUST_CLI_VERSION=v0.1.0
+ARG TARGETARCH
+ARG AWRUST_CLI_VERSION=v0.1.2
 
-RUN apk add --no-cache musl-dev git
-
-WORKDIR /build
-RUN git clone --depth 1 --branch ${AWRUST_CLI_VERSION} https://github.com/awrust/awrust-cli.git . \
-    && cargo build --release
+RUN apk add --no-cache curl
+RUN case "$TARGETARCH" in \
+      amd64) ARCH=x86_64 ;; \
+      arm64) ARCH=aarch64 ;; \
+    esac \
+    && curl -sL "https://github.com/awrust/awrust-cli/releases/download/${AWRUST_CLI_VERSION}/awrust-cli-${ARCH}-unknown-linux-musl.tar.xz" \
+       | tar xJ --strip-components=1 -C /usr/local/bin awrust-cli-${ARCH}-unknown-linux-musl/awr
 
 FROM alpine:3
 
@@ -25,7 +28,7 @@ RUN addgroup -S awrust && adduser -S awrust -G awrust
 RUN mkdir -p /data /etc/awrust/init/ready.d && chown -R awrust:awrust /data /etc/awrust
 
 COPY --from=facade-builder /build/target/release/awrust /usr/local/bin/awrust
-COPY --from=cli-builder /build/target/release/awr /usr/local/bin/awr
+COPY --from=cli-downloader /usr/local/bin/awr /usr/local/bin/awr
 COPY --from=s3-bin /usr/local/bin/awrust-s3-server /usr/local/bin/awrust-s3-server
 
 USER awrust
