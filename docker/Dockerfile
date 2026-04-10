@@ -1,4 +1,4 @@
-FROM ghcr.io/awrust/awrust-s3:latest AS s3-bin
+FROM ghcr.io/awrust/awrust-s3:v0.3.2 AS s3-bin
 
 FROM rust:1.93-alpine AS facade-builder
 
@@ -12,7 +12,7 @@ RUN cargo build --release -p awrust
 FROM --platform=$BUILDPLATFORM alpine:3 AS cli-downloader
 
 ARG TARGETARCH
-ARG AWRUST_CLI_VERSION=v0.1.1
+ARG AWRUST_CLI_VERSION=v0.1.2
 
 RUN apk add --no-cache curl
 RUN case "$TARGETARCH" in \
