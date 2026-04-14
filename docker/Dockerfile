@@ -1,4 +1,4 @@
-FROM ghcr.io/awrust/awrust-s3:0.3.2 AS s3-bin
+FROM ghcr.io/awrust/awrust-s3:0.3.3 AS s3-bin
 
 FROM rust:1.93-alpine AS facade-builder
 
